@@ -108,7 +108,7 @@ jobs:
       - name: Set up SSH key for Dev
         run: |
           mkdir -p /home/runner/.ssh
-          echo "${{ secrets.MAIN_SSH_KEY }}" > /home/runner/.ssh/main_key.pem
+          echo "${{ secrets.DEV_SSH_KEY }}" > /home/runner/.ssh/main_key.pem
           chmod 600 /home/runner/.ssh/main_key.pem
 
       # Paso 7: Desplegar en la instancia Main usando Docker Compose
