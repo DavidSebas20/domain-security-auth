@@ -1,0 +1,146 @@
+name: Deploy Microservices on AWS with Incremental Ports
+
+on:
+  push:
+    branches:
+      - Dev
+      - QA
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      # Paso 1: Checkout del código fuente
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      # Paso 2: Login a Docker Hub
+      - name: Login to Docker Hub
+        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+
+      # Paso 3: Construir y subir las imágenes Docker para cada microservicio
+      - name: Build and Push Docker Images
+        run: |
+          for dir in $(ls -d */); do
+            service_name=$(basename "$dir")
+            echo "Building Docker image for $service_name..."
+            docker build -t dssanguano/${service_name}:${{ github.ref_name }} "$dir"
+            docker push dssanguano/${service_name}:${{ github.ref_name }}
+          done
+
+  deploy-qa:
+    if: github.ref_name == 'QA'
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      # Paso 4: Configurar clave SSH para QA
+      - name: Set up SSH key for QA
+        run: |
+          mkdir -p /home/runner/.ssh
+          echo "${{ secrets.QA_SSH_KEY }}" > /home/runner/.ssh/qa_key.pem
+          chmod 600 /home/runner/.ssh/qa_key.pem
+
+      # Paso 5: Desplegar en la instancia QA usando Docker Compose
+      - name: Deploy to QA Instance
+        run: |
+          ssh -o StrictHostKeyChecking=no -i /home/runner/.ssh/qa_key.pem ubuntu@ec2-54-175-100-230.compute-1.amazonaws.com << 'EOF'
+          # Verificar e instalar Docker si no está instalado
+          if ! command -v docker &> /dev/null; then
+            echo "Docker no está instalado. Procediendo a instalar..."
+            sudo apt update
+            sudo apt install -y docker.io
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            sudo usermod -aG docker ubuntu
+            echo "Docker instalado exitosamente."
+          else
+            echo "Docker ya está instalado."
+          fi
+
+          # Verificar e instalar Docker Compose si no está instalado
+          if ! command -v docker-compose &> /dev/null; then
+            echo "Docker Compose no está instalado. Procediendo a instalar..."
+            sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+            echo "Docker Compose instalado exitosamente."
+          else
+            echo "Docker Compose ya está instalado."
+          fi
+
+          # Crear archivo docker-compose.yml dinámicamente
+          echo "version: '3'" > docker-compose.yml
+          echo "services:" >> docker-compose.yml
+          port=8080
+          for dir in $(ls -d */); do
+            service_name=$(basename "$dir")
+            echo "  $service_name:" >> docker-compose.yml
+            echo "    image: dssanguano/${service_name}:qa" >> docker-compose.yml
+            echo "    ports:" >> docker-compose.yml
+            echo "      - \"${port}:${port}\"" >> docker-compose.yml
+            port=$((port + 1))
+          done
+
+          # Desplegar con Docker Compose
+          sudo docker-compose down || true
+          sudo docker-compose pull
+          sudo docker-compose up -d
+          EOF
+
+  deploy-main:
+    if: github.ref_name == 'Dev'
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      # Paso 6: Configurar clave SSH para Main
+      - name: Set up SSH key for Dev
+        run: |
+          mkdir -p /home/runner/.ssh
+          echo "${{ secrets.DEV_SSH_KEY }}" > /home/runner/.ssh/main_key.pem
+          chmod 600 /home/runner/.ssh/main_key.pem
+
+      # Paso 7: Desplegar en la instancia Main usando Docker Compose
+      - name: Deploy to Main Instance
+        run: |
+          ssh -o StrictHostKeyChecking=no -i /home/runner/.ssh/main_key.pem ubuntu@ec2-54-175-100-230.compute-1.amazonaws.com << 'EOF'
+          # Verificar e instalar Docker si no está instalado
+          if ! command -v docker &> /dev/null; then
+            echo "Docker no está instalado. Procediendo a instalar..."
+            sudo apt update
+            sudo apt install -y docker.io
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            sudo usermod -aG docker ubuntu
+            echo "Docker instalado exitosamente."
+          else
+            echo "Docker ya está instalado."
+          fi
+
+          # Verificar e instalar Docker Compose si no está instalado
+          if ! command -v docker-compose &> /dev/null; then
+            echo "Docker Compose no está instalado. Procediendo a instalar..."
+            sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+            echo "Docker Compose instalado exitosamente."
+          else
+            echo "Docker Compose ya está instalado."
+          fi
+
+          # Crear archivo docker-compose.yml dinámicamente
+          echo "version: '3'" > docker-compose.yml
+          echo "services:" >> docker-compose.yml
+          port=8080
+          for dir in $(ls -d */); do
+            service_name=$(basename "$dir")
+            echo "  $service_name:" >> docker-compose.yml
+            echo "    image: dssanguano/${service_name}:main" >> docker-compose.yml
+            echo "    ports:" >> docker-compose.yml
+            echo "      - \"${port}:${port}\"" >> docker-compose.yml
+            port=$((port + 1))
+          done
+
+          # Desplegar con Docker Compose
+          sudo docker-compose down || true
+          sudo docker-compose pull
+          sudo docker-compose up -d
+          EOF
