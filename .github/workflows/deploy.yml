@@ -44,7 +44,16 @@ jobs:
       # Paso 5: Desplegar en la instancia QA usando Docker Compose
       - name: Deploy to QA Instance
         run: |
-          ssh -o StrictHostKeyChecking=no -i /home/runner/.ssh/qa_key.pem ubuntu@ec2-54-175-100-230.compute-1.amazonaws.com << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i /home/runner/.ssh/qa_key.pem ubuntu@ec2-54-90-125-142.compute-1.amazonaws.com << 'EOF'
+          # Clonar el repositorio en la instancia EC2
+          if [ ! -d "/home/ubuntu/repo" ]; then
+            echo "Cloning repository..."
+            git clone https://github.com/tu-usuario/tu-repositorio.git /home/ubuntu/repo
+          else
+            echo "Repository already cloned. Pulling latest changes..."
+            cd /home/ubuntu/repo && git pull origin ${{ github.ref_name }}
+          fi
+
           # Verificar e instalar Docker si no está instalado
           if ! command -v docker &> /dev/null; then
             echo "Docker no está instalado. Procediendo a instalar..."
@@ -68,16 +77,19 @@ jobs:
             echo "Docker Compose ya está instalado."
           fi
 
+          # Cambiar al directorio del repositorio
+          cd /home/ubuntu/repo
+
           # Crear archivo docker-compose.yml dinámicamente
           echo "version: '3'" > docker-compose.yml
           echo "services:" >> docker-compose.yml
-          port=8080
+          port=8000
           for dir in $(ls -d */); do
             service_name=$(basename "$dir")
             echo "  $service_name:" >> docker-compose.yml
             echo "    image: dssanguano/${service_name}:qa" >> docker-compose.yml
             echo "    ports:" >> docker-compose.yml
-            echo "      - \"${port}:${port}\"" >> docker-compose.yml
+            echo "      - \"${port}:5000\"" >> docker-compose.yml
             port=$((port + 1))
           done
 
@@ -87,7 +99,7 @@ jobs:
           sudo docker-compose up -d
           EOF
 
-  deploy-main:
+  deploy-dev:
     if: github.ref_name == 'Dev'
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -96,13 +108,22 @@ jobs:
       - name: Set up SSH key for Dev
         run: |
           mkdir -p /home/runner/.ssh
-          echo "${{ secrets.DEV_SSH_KEY }}" > /home/runner/.ssh/main_key.pem
+          echo "${{ secrets.MAIN_SSH_KEY }}" > /home/runner/.ssh/main_key.pem
           chmod 600 /home/runner/.ssh/main_key.pem
 
       # Paso 7: Desplegar en la instancia Main usando Docker Compose
-      - name: Deploy to Main Instance
+      - name: Deploy to Dev Instance
         run: |
-          ssh -o StrictHostKeyChecking=no -i /home/runner/.ssh/main_key.pem ubuntu@ec2-54-175-100-230.compute-1.amazonaws.com << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i /home/runner/.ssh/main_key.pem ubuntu@ec2-44-210-69-68.compute-1.amazonaws.com << 'EOF'
+          # Clonar el repositorio en la instancia EC2
+          if [ ! -d "/home/ubuntu/repo" ]; then
+            echo "Cloning repository..."
+            git clone https://github.com/tu-usuario/tu-repositorio.git /home/ubuntu/repo
+          else
+            echo "Repository already cloned. Pulling latest changes..."
+            cd /home/ubuntu/repo && git pull origin ${{ github.ref_name }}
+          fi
+
           # Verificar e instalar Docker si no está instalado
           if ! command -v docker &> /dev/null; then
             echo "Docker no está instalado. Procediendo a instalar..."
@@ -125,6 +146,9 @@ jobs:
           else
             echo "Docker Compose ya está instalado."
           fi
+
+          # Cambiar al directorio del repositorio
+          cd /home/ubuntu/repo
 
           # Crear archivo docker-compose.yml dinámicamente
           echo "version: '3'" > docker-compose.yml
