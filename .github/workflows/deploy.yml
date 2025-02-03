@@ -91,7 +91,7 @@ jobs:
           for dir in $(ls -d */); do
             service_name=$(basename "$dir")
             echo "  $service_name:" >> docker-compose.yml
-            echo "    image: dssanguano/${service_name}:qa" >> docker-compose.yml
+            echo "    image: dssanguano/${service_name}:${branch_name}" >> docker-compose.yml
             echo "    ports:" >> docker-compose.yml
             echo "      - \"${port}:${port}\"" >> docker-compose.yml
             port=$((port + 1))
@@ -165,7 +165,7 @@ jobs:
           for dir in $(ls -d */); do
             service_name=$(basename "$dir")
             echo "  $service_name:" >> docker-compose.yml
-            echo "    image: dssanguano/${service_name}:dev" >> docker-compose.yml
+            echo "    image: dssanguano/${service_name}:${branch_name}" >> docker-compose.yml
             echo "    ports:" >> docker-compose.yml
             echo "      - \"${port}:${port}\"" >> docker-compose.yml
             port=$((port + 1))
