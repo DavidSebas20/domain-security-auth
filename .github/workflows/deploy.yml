@@ -88,6 +88,7 @@ jobs:
           echo "version: '3'" > docker-compose.yml
           echo "services:" >> docker-compose.yml
           port=8080
+          branch_name=$(echo "${{ github.ref_name }}"
           for dir in $(ls -d */); do
             service_name=$(basename "$dir")
             echo "  $service_name:" >> docker-compose.yml
@@ -162,6 +163,7 @@ jobs:
           echo "version: '3'" > docker-compose.yml
           echo "services:" >> docker-compose.yml
           port=8080
+          branch_name=$(echo "${{ github.ref_name }}"
           for dir in $(ls -d */); do
             service_name=$(basename "$dir")
             echo "  $service_name:" >> docker-compose.yml
