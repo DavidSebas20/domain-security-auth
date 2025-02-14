@@ -1,67 +1,63 @@
-# 🏥 **Appointment Management Domain**
+# 🔐 **Security & Authorization Domain**
 
 ## 📖 Description
-The **Appointment Management** domain handles the scheduling and management of appointments for patients and doctors. The domain consists of independent microservices that allow the system to scale and maintain modularity. Each microservice is responsible for a different CRUD operation related to appointments, including create, read, update, and delete.
+The **Security & Authorization** domain is responsible for managing authentication, authorization, and data encryption within the hospital system. Each functionality is implemented as an independent microservice to ensure **security, scalability, and modularity**.
 
 ---
 
 ## 🔹 Microservices
 
-### 📅 **1. Create Appointment**
-- **📌 Description:** This microservice handles the creation of new appointments within the system.
+### 🔑 **1. User Authentication and Validation (JWT)**
+- **📌 Description:** Authenticates users and generates a JWT token for secure access. It also validates the provided JWT token to ensure secure API access.
 - **🔹 Method:** `POST`
-- **🔗 Dependencies:** Doctor, Patient, and Appointment database 🗄️
-- **📥 Inputs:** Patient ID, Doctor ID, Appointment date and time
-- **📤 Outputs:** Confirmation of appointment creation and appointment details 📅
+- **🔗 Dependencies:** Patient, doctor, and admin database 🗄️
+- **📥 Inputs:** Username and password or token
+- **📤 Outputs:** JWT token and verification result 🔑
 
-### 🗓️ **2. Read Appointment**
-- **📌 Description:** This microservice retrieves appointment details by appointment ID.
-- **🔹 Method:** `GET`
-- **🔗 Dependencies:** Appointment database 🗄️
-- **📥 Inputs:** Appointment ID
-- **📤 Outputs:** Appointment details such as date, time, patient, and doctor info 🧑‍⚕️
+### 🛡️ **2. Password Encryption and Verification**
+- **📌 Description:** Encrypts passwords before storing them in the database and verifies if a provided password matches the stored encrypted password.
+- **🔹 Method:** `POST`
+- **📥 Inputs:** Plain text password or encrypted password
+- **📤 Outputs:** Encrypted password 🔐 or verification result (match ✅ or no match ❌)
 
-### 🔄 **3. Update Appointment**
-- **📌 Description:** This microservice updates existing appointment details, such as rescheduling or modifying the patient/doctor information.
-- **🔹 Method:** `PUT`
-- **🔗 Dependencies:** Appointment database 🗄️
-- **📥 Inputs:** Appointment ID, updated appointment details
-- **📤 Outputs:** Confirmation of appointment update and new appointment details 🕓
-
-### ❌ **4. Delete Appointment**
-- **📌 Description:** This microservice deletes an appointment from the system.
-- **🔹 Method:** `DELETE`
-- **🔗 Dependencies:** Appointment database 🗄️
-- **📥 Inputs:** Appointment ID
-- **📤 Outputs:** Confirmation of appointment deletion 🗑️
+### 📝 **3. Patient Registration**
+- **📌 Description:** Registers new patients into the system and sends a welcome email with their credentials.
+- **🔹 Method:** `POST`
+- **🔗 Dependencies:** AWS SES (Simple Email Service) for sending emails, Patient database 🗄️
+- **📥 Inputs:** Patient details including first name, last name, birth date, gender, address, phone, email, username, and password
+- **📤 Outputs:** Success message upon registration and email notification 📧
 
 ---
 
 ## 🛠️ **Technologies Used**
-- **⚙️ Backend:** Java, Spring Boot, Maven 💻
+- **⚙️ Backend:** Go, bcrypt 💻
 - **🗄️ Database:** PostgreSQL 🐘, MySQL 🐬
+- **📧 Email Service:** AWS SES (Simple Email Service)
+- **🔒 Authentication:** JWT (JSON Web Tokens)
+- **⚡ Frameworks:** Gorilla Mux for routing
 
 ---
 
 ## 🔗 **Integrations**
-- **🏥 Patient Management Domain:** Patients are associated with appointments, requiring interactions for creating, updating, and viewing appointments.
-- **🩺 Doctor Management Domain:** Doctors' schedules are affected by appointment management, ensuring availability.
-- **🧑 Admin Management Domain:** Administrators can manage appointments as part of their administrative duties.
+- **🏥 Patient Management Domain:** Encryption is necessary to keep patient passwords secure.
+- **🩺 Doctor Management Domain:** Encryption is necessary to keep doctor passwords secure.
+- **🧑 Admin Management Domain:** Encryption is necessary to keep admin passwords secure.
+- **📧 AWS SES Integration:** Sends welcome emails to newly registered patients with their login credentials.
 
 ---
 
-## 📁 **Directory Structure**
+## 🚀 **Deployment**
+- **📦 Dockerized Microservices:** Each microservice is containerized using Docker for easy deployment and scalability.
+- **🌐 Deployment Environments:**
+  - QA Environment: Deployed on AWS EC2 instance with incremental ports starting from 8080.
+  - Dev Environment: Deployed on AWS EC2 instance with incremental ports starting from 8080.
+- **🔄 CI/CD Pipeline:** Automated workflows for syncing microservices to the domain repository and deploying them on AWS using GitHub Actions.
 
-```plaintext
-└── davidsebas20-domain-appointment-management/
-    ├── README.md
-    ├── ms-createappointment/
-    ├── ms-deleteappointment/
-    ├── ms-readappointment/
-    ├── ms-updateappointment/
-    └── .github/
-        └── workflows/
-            └── deploy.yml
+---
 
+## 📂 **Repository Structure**
+- 📁 `ms-login-jwt`: Microservice for user authentication and JWT validation.
+- 📁 `ms-encrypt`: Microservice for password encryption and verification.
+- 📁 `ms-register`: Microservice for patient registration and email notifications.
 
 
